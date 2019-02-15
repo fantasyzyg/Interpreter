@@ -1,2 +1,4 @@
 java/Interpreter/.idea/
 java/Interpreter/out/
+.vscode/
+java/Interpreter/Compiler.iml
