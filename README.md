@@ -1,4 +1,4 @@
-### 依据网上教程写的解释器
+### 依据网上教程写的解释器
 教程连接如下：https://ruslanspivak.com/lsbasi-part1/
 
 ### 什么是解释器？
@@ -29,7 +29,7 @@ begin
 end.
 ```
 
-## *写解析器之前一般都是先写一个简单的算术表达式的解析器。对于一个简单的算术表达式，我们需要知道是如何被解释的，首先肯定是词法分析，词法分析器分割字符，形成字符流(Token)。*
+### *写解析器之前一般都是先写一个简单的算术表达式的解析器。对于一个简单的算术表达式，我们需要知道是如何被解释的，首先肯定是词法分析，词法分析器分割字符，形成字符流(Token)。*
 
 #### A token is an object that has a type and a value 
 #### The process of breaking the input string into tokens is called lexical analysis. 有时候简称 Lexer 或者 tokenizer。

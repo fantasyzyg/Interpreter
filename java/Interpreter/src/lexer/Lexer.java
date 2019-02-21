@@ -1,9 +1,22 @@
 package lexer;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import static lexer.Lexer.TYPE.*;
+
 public class Lexer {
     private int pos;
     private String text;
     private Character current_char;
+
+    private static Map<String, Token> RESERVED_KEYWORDS = new HashMap<>();
+
+    static {
+        RESERVED_KEYWORDS.put("BEGIN", new Token(BEGIN, "BEGIN"));
+        RESERVED_KEYWORDS.put("END", new Token(END, "END"));
+    }
+
 
     // 需要处理的Token类型
     public enum TYPE {
@@ -14,7 +27,15 @@ public class Lexer {
         DIV("DIV"),
         LPARA("LPARA"),
         RPARA("RPARA"),
-        EOF("EOF");
+        EOF("EOF"),
+
+        // new key words
+        BEGIN("BEGIN"),
+        END("END"),
+        ID("ID"),
+        DOT("DOT"),
+        ASSIGN("ASSIGN"),
+        SEMI("SEMI");
 
         private String typeName;
 
@@ -174,11 +195,24 @@ public class Lexer {
             }
             // skipWhitespaces();   // 这样写是不行的，虽然我们想到的是，能进入这个函数的就肯定还不是末尾，但是如果在句子末尾本来就是有空格的话，就会发生错误了。
 
-            if (Character.isDigit(current_char))
+            Character c;
+            if (Character.isDigit(current_char)) {
                 return new Token<>(TYPE.INTEGER, integer());
-            else if (current_char == '+') {
+            } else if (Character.isLetter(current_char)) {
+                return id();
+            } else if (current_char == ':' && ((c = peek()) != null && c == '=')) {
+                advance();
+                advance();
+                return new Token<>(ASSIGN, ":=");
+            } else if (current_char == '+') {
                 advance();
                 return new Token<>(TYPE.PLUS, "+");
+            } else if (current_char == ';') {
+                advance();
+                return new Token<>(SEMI, ";");
+            } else if (current_char == '.') {
+                advance();
+                return new Token<>(DOT, ".");
             } else if (current_char == '-') {
                 advance();
                 return new Token<>(TYPE.MINUS, "-");
@@ -201,4 +235,21 @@ public class Lexer {
         return new Token<String>(TYPE.EOF, null);
     }
 
+    private Character peek() {
+        int peekPos = pos + 1;
+        if (peekPos >= text.length())
+            return null;
+        else
+            return text.charAt(peekPos);
+    }
+
+    private Token id() {
+        StringBuilder sb = new StringBuilder();
+        while (current_char != null && Character.isLetter(current_char)) {
+            sb.append(current_char);
+            advance();
+        }
+
+        return RESERVED_KEYWORDS.containsKey(sb.toString())?RESERVED_KEYWORDS.get(sb.toString()) : new Token<>(ID, sb.toString());
+    }
 }

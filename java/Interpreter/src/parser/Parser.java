@@ -1,9 +1,13 @@
 package parser;
 
-import ast.AST;
-import ast.BinOp;
-import ast.Num;
+import ast.*;
 import lexer.Lexer;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static lexer.Lexer.TYPE.*;
+import static lexer.Lexer.Token;
 
 public class Parser {
     private Lexer lexer;
@@ -30,13 +34,23 @@ public class Parser {
     private AST factor() {
         Lexer.Token<Integer> token = currentToken;
         AST result;
-        if (token.getType() == Lexer.TYPE.LPARA) {
-            eat(Lexer.TYPE.LPARA);
+        if (token.getType() == LPARA) {
+            eat(LPARA);
             result = expr();
-            eat(Lexer.TYPE.RPARA);
-        } else {
+            eat(RPARA);
+        } else if (token.getType() == INTEGER){
             result = new Num(token);
-            eat(Lexer.TYPE.INTEGER);
+            eat(INTEGER);
+        } else if (token.getType() == ID) {
+            return  avaliable();
+        } else {
+            if (token.getType() == PLUS)
+                eat(PLUS);
+            else if (token.getType() == MINUS)
+                eat(MINUS);
+            else
+                error();
+            result = new UnaryOp(token.getType(), factor());
         }
 
         return result;
@@ -44,12 +58,12 @@ public class Parser {
 
     private AST term() {
         AST result = factor();
-        while (currentToken.getType() == Lexer.TYPE.MUL || currentToken.getType() == Lexer.TYPE.DIV) {
+        while (currentToken.getType() == MUL || currentToken.getType() == DIV) {
             Lexer.Token token = currentToken;
-            if (token.getType() == Lexer.TYPE.MUL) {
-                eat(Lexer.TYPE.MUL);
+            if (token.getType() == MUL) {
+                eat(MUL);
             } else {
-                eat(Lexer.TYPE.DIV);
+                eat(DIV);
             }
 
             result = new BinOp(result, token, factor());
@@ -58,34 +72,94 @@ public class Parser {
         return result;
     }
 
-    /*
-        文法如下：
-            expr --> term ((PLUS | MINUS)term)*
-            term --> factor ((MUL | DIV) factor)*
-            factor --> INTEGER | (expr)
-        开始符号为 expr , 优先级更高的应该放在更下面。
-
-     */
     private AST expr() {
         AST result = term();
 
-        while (currentToken.getType() == Lexer.TYPE.PLUS || currentToken.getType() == Lexer.TYPE.MINUS) {
+        while (currentToken.getType() == PLUS || currentToken.getType() == MINUS) {
             Lexer.Token token = currentToken;
-            if (token.getType() == Lexer.TYPE.PLUS) {
-                eat(Lexer.TYPE.PLUS);
+            if (token.getType() == PLUS) {
+                eat(PLUS);
             } else {
-                eat(Lexer.TYPE.MINUS);
+                eat(MINUS);
             }
             result = new BinOp(result, token, term());
         }
 
-        if (currentToken.getType() == Lexer.TYPE.INTEGER)
+        if (currentToken.getType() == INTEGER)
             error();
 
         return result;
     }
 
     public AST parser() {
-        return expr();
+        AST node = program();
+        if (currentToken.getType() != EOF)
+            error();
+
+        return node;
+    }
+
+
+    private AST program() {
+        AST node = compoundStatement();
+        eat(DOT);
+
+        return node;
+    }
+
+    private AST compoundStatement() {
+        eat(BEGIN);
+        Compound node = new Compound();
+        List<AST> children = statementList();
+        for (AST child: children)
+            node.getChildren().add(child);
+
+        eat(END);
+
+        return node;
+    }
+
+    private List<AST> statementList() {
+        List<AST> result = new ArrayList<>();
+        result.add(statement());
+
+        while (currentToken.getType() != EOF && currentToken.getType() == SEMI) {
+            eat(SEMI);
+            result.add(statement());
+        }
+
+        if (currentToken.getType() == ID)
+            error();
+
+        return result;
+    }
+
+    private AST statement() {
+        if (currentToken.getType() == BEGIN)
+            return compoundStatement();
+        else if (currentToken.getType() == ID)
+            return assignmentStatement();
+        else
+            return empty();
+    }
+
+    private AST assignmentStatement() {
+        AST left = avaliable();
+        Token op = currentToken;
+        eat(ASSIGN);
+        AST right = expr();
+
+        return new Assignment(left, op, right);
+    }
+
+    private AST avaliable() {
+        Var var = new Var(currentToken);
+        eat(ID);
+
+        return var;
+    }
+
+    private AST empty() {
+        return new NoOp();
     }
 }
